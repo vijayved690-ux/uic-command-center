@@ -135,8 +135,8 @@ function AgentCard({ agent, onLog }) {
     }, 700);
 
     try {
-      // Yahan hum apne Render Backend ko call kar rahe hain
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      // ✅ YAHAN CHANGE HUA HAI: Single server API routing
+      const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:10000' : '';
       
       const response = await fetch(`${API_BASE_URL}/api/run-agent`, {
         method: "POST",

@@ -2,28 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path'); // ✅ Naya add kiya hai
 const Anthropic = require('@anthropic-ai/sdk');
 const AgentTask = require('./models/AgentTask');
 
 const app = express();
 
-// Render Frontend URL ko allow karne ke liye CORS
-const allowedOrigins = [
-    'http://localhost:5173', 
-    process.env.FRONTEND_URL // Render dashboard se aayega
-];
-
-app.use(cors({
-    origin: function(origin, callback){
-        if(!origin) return callback(null, true);
-        if(allowedOrigins.indexOf(origin) === -1){
-            return callback(new Error('CORS policy violation'), false);
-        }
-        return callback(null, true);
-    },
-    credentials: true
-}));
-
+// ✅ CORS ko simple kar diya hai kyunki ab sab ek hi server par hai
+app.use(cors());
 app.use(express.json());
 
 // Claude Setup
@@ -75,5 +61,13 @@ app.get('/api/activity-feed', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 5000;
+// ✅ --- YAHAN CHANGE HUA HAI: Frontend ko serve karne ka logic ---
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+// -----------------------------------------------------------------
+
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
