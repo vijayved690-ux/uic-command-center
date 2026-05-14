@@ -8,11 +8,11 @@ const AgentTask = require('./models/AgentTask');
 
 const app = express();
 
-// CORS aur JSON parsing setup
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Claude Setup (API Key environment variable se lega)
+// Claude Setup (Latest Stable Sonnet Model)
 const anthropic = new Anthropic({
     apiKey: process.env.CLAUDE_API_KEY, 
 });
@@ -22,27 +22,22 @@ mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ MongoDB Connected'))
     .catch(err => console.log('❌ MongoDB Error:', err));
 
-/**
- * AGENT RUN API
- * Anthropic Claude API ko call karta hai aur result DB mein save karta hai
- */
+// Agent Run API
 app.post('/api/run-agent', async (req, res) => {
     const { agentName, prompt } = req.body;
-
     try {
-        // Claude 3 Haiku Model Call
+        // Calling Claude 3.5 Sonnet (Most Stable & Powerful)
         const msg = await anthropic.messages.create({
-            model: "claude-3-haiku-20240307",
+            model: "claude-3-5-sonnet-20240620", 
             max_tokens: 1024,
             messages: [{ role: "user", content: prompt }]
         });
 
         const claudeResponse = msg.content[0].text;
         
-        // Cost calculations (Haiku rates in INR estimate)
-        const estimatedCostINR = (msg.usage.input_tokens * 0.0001) + (msg.usage.output_tokens * 0.0005);
+        // Cost estimation for Sonnet
+        const estimatedCostINR = (msg.usage.input_tokens * 0.0003) + (msg.usage.output_tokens * 0.0012);
 
-        // Save to Database
         const newTask = new AgentTask({
             agentName,
             prompt,
@@ -53,19 +48,15 @@ app.post('/api/run-agent', async (req, res) => {
 
         res.json({ success: true, response: claudeResponse, taskData: newTask });
     } catch (error) {
-        // Detailed error log for Render console
-        console.error("Detailed Agent Error:", error);
+        console.error("Claude API Error:", error.message);
         res.status(500).json({ 
             success: false, 
-            error: error.message || "Claude API Error. Check API Key or Model access." 
+            error: "Claude API Error: " + error.message 
         });
     }
 });
 
-/**
- * ACTIVITY FEED API
- * Last 10 tasks ko history dikhane ke liye fetch karta hai
- */
+// Activity Feed API
 app.get('/api/activity-feed', async (req, res) => {
     try {
         const history = await AgentTask.find().sort({ timestamp: -1 }).limit(10);
@@ -75,19 +66,14 @@ app.get('/api/activity-feed', async (req, res) => {
     }
 });
 
-/**
- * STATIC FRONTEND SERVING
- * Frontend ke build (dist folder) ko backend se hi chalane ke liye
- */
+// Serving Static Frontend Files
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-// Baaki saari routes ko frontend ki index.html par redirect karein
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
-// Server Start
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-    console.log(`🚀 UIC Dashboard Server running on port ${PORT}`);
+    console.log(`🚀 UIC Dashboard Live on Port ${PORT}`);
 });
