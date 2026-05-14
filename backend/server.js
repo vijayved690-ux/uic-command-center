@@ -8,26 +8,26 @@ const AgentTask = require('./models/AgentTask');
 
 const app = express();
 
-// UIC Dashboard Standard Middlewares
+// Standard Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Claude Setup (Latest Model from your Workbench)
+// Claude Setup (Using the exact model that worked in your Workbench)
 const anthropic = new Anthropic({
     apiKey: process.env.CLAUDE_API_KEY, 
 });
 
-// MongoDB Setup for UIC Activities
+// MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅ MongoDB Connected Successfully'))
+    .then(() => console.log('✅ MongoDB Connected'))
     .catch(err => console.log('❌ MongoDB Error:', err));
 
-// --- API: RUN AGENT (UIC AI SEO Logic) ---
+// --- Agent Run API ---
 app.post('/api/run-agent', async (req, res) => {
     const { agentName, prompt } = req.body;
     try {
         const msg = await anthropic.messages.create({
-            // ✅ EXACT Model ID jo aapke workbench par active hai
+            // ✅ EXACT Model ID jo aapke workbench par successfully chala
             model: "claude-haiku-4-5-20251001", 
             max_tokens: 1024,
             messages: [{ role: "user", content: prompt }]
@@ -35,7 +35,7 @@ app.post('/api/run-agent', async (req, res) => {
 
         const claudeResponse = msg.content[0].text;
         
-        // UIC Cost Calculation Logic (Haiku Rates)
+        // Cost estimation (Haiku rates)
         const estimatedCostINR = (msg.usage.input_tokens * 0.0001) + (msg.usage.output_tokens * 0.0005);
 
         const newTask = new AgentTask({
@@ -48,16 +48,12 @@ app.post('/api/run-agent', async (req, res) => {
 
         res.json({ success: true, response: claudeResponse, taskData: newTask });
     } catch (error) {
-        // Detailed error for UIC Troubleshooting
         console.error("Agent Error Details:", error);
-        res.status(500).json({ 
-            success: false, 
-            error: "Claude API Error: " + error.message 
-        });
+        res.status(500).json({ success: false, error: "Claude API Error: " + error.message });
     }
 });
 
-// --- API: ACTIVITY FEED ---
+// --- Activity Feed API ---
 app.get('/api/activity-feed', async (req, res) => {
     try {
         const history = await AgentTask.find().sort({ timestamp: -1 }).limit(10);
@@ -67,16 +63,13 @@ app.get('/api/activity-feed', async (req, res) => {
     }
 });
 
-// --- SERVE FRONTEND (UIC UI Logic) ---
-// Frontend ke final build ko serve karne ke liye
+// --- Serve Frontend UI ---
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-// Catch-all route taaki React/Vite routing sahi chale
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
-// Server Start
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
     console.log(`🚀 UIC Dashboard Live on Port ${PORT}`);
